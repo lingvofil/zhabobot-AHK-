@@ -56,8 +56,8 @@ RunScheduling()
         ; На арену
         {
             Text: "на арену",
-            Date: "26.01.2026",
-            Time: "8:05",
+            Date: "27.01.2026",
+            Time: "8:18",
             IntervalHours: 1,
             IntervalMinutes: 0,
             Iterations: 0
@@ -92,7 +92,7 @@ RunScheduling()
         
         ; Проверяем, массив ли это задач
         local isMultiTask := (Type(task.Text) = "Array")
-        local taskCount := isMultiTask ? task.Text.Length : 1
+        local taskCount := isMultiTask ? task.Text.Length : 1;
         
         if (isMultiTask)
         {
@@ -255,7 +255,7 @@ GenerateDateCoords(startDateStr, endDateStr)
     {
         local day := Integer(SubStr(currentDate, 7, 2))
         local month := Integer(SubStr(currentDate, 5, 2))
-        local key := day . "-" . month
+        local key := day . "-" . month;
         
         local x := startX + (col * stepX)
         local y := startY + (row * stepY)
@@ -265,7 +265,7 @@ GenerateDateCoords(startDateStr, endDateStr)
         col++
         if (col = 7)
         {
-            col := 0
+            col := 0;
             row++
         }
         
