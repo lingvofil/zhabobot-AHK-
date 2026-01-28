@@ -56,8 +56,8 @@ RunScheduling()
         ; На арену
         {
             Text: "на арену",
-            Date: "27.01.2026",
-            Time: "8:18",
+            Date: "28.01.2026",
+            Time: "11:23",
             IntervalHours: 1,
             IntervalMinutes: 0,
             Iterations: 0
