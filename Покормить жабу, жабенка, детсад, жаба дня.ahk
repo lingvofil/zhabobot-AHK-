@@ -1,12 +1,8 @@
 #Requires AutoHotkey v2.0
-; =======================================================================
-; == АВТОМАТИЧЕСКИЙ ПЛАНИРОВЩИК С УДОБНЫМ ФОРМАТОМ ДАТ ==
-; == Формат: Date: "DD.MM.YYYY", Time: "HH:MM" ==
-; =======================================================================
 
 ; --- НАСТРОЙКИ СЕТКИ КООРДИНАТ ---
-GRID_START_DATE := "29.12.2025"
-GRID_END_DATE := "08.02.2026"
+GRID_START_DATE := "26.01.2026"
+GRID_END_DATE := "08.03.2026"
 
 F1::
 {
@@ -15,30 +11,22 @@ F1::
 
 RunScheduling()
 {
-    ; --- НАСТРОЙКИ ЗАДАЧ (НОВЫЙ ФОРМАТ) ---
+    ; --- НАСТРОЙКИ ЗАДАЧ ---
     local tasks := [
-        ; Покормить жабу
+        ; Жаба, жабенок, арена
         {
-            Text: "покормить жабу",
-            Date: "28.01.2026",
-            Time: "23:50",
-            IntervalHours: 6,
-            IntervalMinutes: 10,
-            Iterations: 0
-        },
-        ; Жабенок и жаба дня
-        {
-            Text: ["отправить жабенка в детский сад", "отправить жабенка на махач", "забрать жабенка", "жаба дня"],
-            Date: "29.01.2026",
-            Time: ["09:00", "12:00", "16:00", "00:01"],
-            IntervalHours: 24,
-            IntervalMinutes: 0,
-            Iterations: 0
+            Text: ["покормить жабу", "покормить жабу", "покормить жабу", "откормить жабу", "отправить жабенка в детский сад", "отправить жабенка на махач", "забрать жабенка", "жаба дня", "на арену"],
+            Date: "23.02.2026",  ; Общая дата начала для всех
+            Time: ["07:30", "14:00", "20:30", "01:00", "09:00", "12:00", "16:00", "00:01", "09:23"],  ; Время для каждой подзадачи
+            DailyRepeats: [1, 1, 1, 1, 1, 1, 1, 1, 14],  ; Количество повторений в день
+            IntervalHours: [24, 24, 24, 24, 24, 24, 24, 24, 1],  ; Интервал для каждой подзадачи
+            IntervalMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            Days: 4  ; Количество дней выполнения для всех подзадач
         },
         ; Брак вознаграждение
         {
             Text: "брак вознаграждение",
-            Date: "29.01.2026",
+            Date: "08.02.2026",
             Time: "00:05",
             IntervalHours: 120,
             IntervalMinutes: 0,
@@ -47,20 +35,11 @@ RunScheduling()
         ; Клан вознаграждение
         {
             Text: "клан вознаграждение",
-            Date: "16.01.2026",
+            Date: "06.02.2026",
             Time: "00:05",
             IntervalHours: 168,
             IntervalMinutes: 0,
             Iterations: 0
-        },
-        ; На арену
-        {
-            Text: "на арену",
-            Date: "28.01.2026",
-            Time: "11:23",
-            IntervalHours: 1,
-            IntervalMinutes: 0,
-            Iterations: 12
         }
     ]
     
@@ -76,8 +55,13 @@ RunScheduling()
     local totalTasks := 0
     for task in tasks
     {
-        if (task.Iterations = 0)
+        ; Пропускаем задачи с Iterations = 0
+        if (task.HasOwnProp("Iterations") && task.Iterations = 0)
             continue
+        ; Пропускаем задачи с Days = 0
+        if (task.HasOwnProp("Days") && task.Days = 0)
+            continue
+            
         local isMultiTask := (Type(task.Text) = "Array")
         totalTasks += isMultiTask ? task.Text.Length : 1
     }
@@ -87,117 +71,68 @@ RunScheduling()
 
     for task in tasks
     {
-        if (task.Iterations = 0)
+        ; Пропускаем задачи с Iterations = 0
+        if (task.HasOwnProp("Iterations") && task.Iterations = 0)
+            continue
+        ; Пропускаем задачи с Days = 0
+        if (task.HasOwnProp("Days") && task.Days = 0)
             continue
         
-        ; Проверяем, массив ли это задач
+        ; Определяем тип задачи
+        local hasDays := task.HasOwnProp("Days")
+        local hasDailyRepeats := task.HasOwnProp("DailyRepeats")
         local isMultiTask := (Type(task.Text) = "Array")
-        local taskCount := isMultiTask ? task.Text.Length : 1
         
-        if (isMultiTask)
+        if (hasDays && hasDailyRepeats && isMultiTask)
         {
-            ; Обрабатываем каждую подзадачу из массива
-            Loop taskCount
+            ; Тип: Объединенная задача с разными параметрами для каждой подзадачи
+            Loop task.Text.Length
             {
                 completedTasks++
                 local currentText := task.Text[A_Index]
                 local currentTime := task.Time[A_Index]
+                local currentDailyRepeats := task.DailyRepeats[A_Index]
+                local currentIntervalHours := task.IntervalHours[A_Index]
+                local currentIntervalMinutes := task.IntervalMinutes[A_Index]
                 
                 ToolTip("Выполняется задача " . completedTasks . " из " . totalTasks . ": " . currentText, 100, 100)
                 
-                local currentDateTime := ConvertToInternalFormat(task.Date, currentTime)
+                local numberOfDays := task.Days
                 
-                Loop task.Iterations
+                Loop numberOfDays
                 {
-                    totalEvents++
-                    local currentYear   := SubStr(currentDateTime, 1, 4)
-                    local currentMonth  := SubStr(currentDateTime, 5, 2)
-                    local currentDay    := SubStr(currentDateTime, 7, 2)
-                    local currentHour   := SubStr(currentDateTime, 9, 2)
-                    local currentMinute := SubStr(currentDateTime, 11, 2)
-
-                    SendInput(currentText)
-                    Sleep(250)
-                    Send("{Enter}")
-                    Sleep(750)
-                    Send("{Backspace 2}")
-                    Sleep(250)
-                    SendInput(Format("{:02}", currentMinute))
-                    Sleep(250)
-                    Send("+{Tab}")
-                    Sleep(250)
-                    SendInput(Format("{:02}", currentHour))
-                    Sleep(250)
-                    Send("+{Tab}")
-                    Sleep(500)
-
-                    local dateKey := Integer(currentDay) . "-" . Integer(currentMonth)
-                    if (dateCoords.Has(dateKey))
+                    local dayNumber := A_Index
+                    local currentDayDate := ConvertToInternalFormat(task.Date, currentTime)
+                    currentDayDate := DateAdd(currentDayDate, (dayNumber - 1), "Days")
+                    
+                    Loop currentDailyRepeats
                     {
-                        Click(dateCoords[dateKey][1], dateCoords[dateKey][2])
+                        totalEvents++
+                        ProcessSingleEvent(currentText, currentDayDate, dateCoords)
+                        currentDayDate := DateAdd(currentDayDate, currentIntervalHours, "Hours")
+                        currentDayDate := DateAdd(currentDayDate, currentIntervalMinutes, "Minutes")
                     }
-                    else
-                    {
-                        ToolTip()
-                        MsgBox("ОШИБКА: Координаты для даты " . dateKey . " не найдены.")
-                        ExitApp()
-                    }
-                    Sleep(500)
-                    Send("{Enter}")
-                    Sleep(1000)
-
-                    currentDateTime := DateAdd(currentDateTime, task.IntervalHours, "Hours")
-                    currentDateTime := DateAdd(currentDateTime, task.IntervalMinutes, "Minutes")
                 }
             }
         }
-        else
+        else if (task.HasOwnProp("Iterations"))
         {
-            ; Обычная одиночная задача
+            ; Тип: Обычная задача с итерациями
             completedTasks++
             ToolTip("Выполняется задача " . completedTasks . " из " . totalTasks . ": " . task.Text, 100, 100)
             
+            local actualIterations := task.Iterations
+            if (task.HasOwnProp("IterationsMultiplier"))
+            {
+                actualIterations := task.Iterations * task.IterationsMultiplier
+            }
+            
             local currentDateTime := ConvertToInternalFormat(task.Date, task.Time)
             
-            Loop task.Iterations
+            Loop actualIterations
             {
                 totalEvents++
-                local currentYear   := SubStr(currentDateTime, 1, 4)
-                local currentMonth  := SubStr(currentDateTime, 5, 2)
-                local currentDay    := SubStr(currentDateTime, 7, 2)
-                local currentHour   := SubStr(currentDateTime, 9, 2)
-                local currentMinute := SubStr(currentDateTime, 11, 2)
-
-                SendInput(task.Text)
-                Sleep(250)
-                Send("{Enter}")
-                Sleep(750)
-                Send("{Backspace 2}")
-                Sleep(250)
-                SendInput(Format("{:02}", currentMinute))
-                Sleep(250)
-                Send("+{Tab}")
-                Sleep(250)
-                SendInput(Format("{:02}", currentHour))
-                Sleep(250)
-                Send("+{Tab}")
-                Sleep(500)
-
-                local dateKey := Integer(currentDay) . "-" . Integer(currentMonth)
-                if (dateCoords.Has(dateKey))
-                {
-                    Click(dateCoords[dateKey][1], dateCoords[dateKey][2])
-                }
-                else
-                {
-                    ToolTip()
-                    MsgBox("ОШИБКА: Координаты для даты " . dateKey . " не найдены.")
-                    ExitApp()
-                }
-                Sleep(500)
-                Send("{Enter}")
-                Sleep(1000)
-
+                ProcessSingleEvent(task.Text, currentDateTime, dateCoords)
                 currentDateTime := DateAdd(currentDateTime, task.IntervalHours, "Hours")
                 currentDateTime := DateAdd(currentDateTime, task.IntervalMinutes, "Minutes")
             }
@@ -208,22 +143,58 @@ RunScheduling()
     MsgBox("Готово! Запланировано событий: " . totalEvents)
 }
 
+; --- ФУНКЦИЯ ОБРАБОТКИ ОДНОГО СОБЫТИЯ ---
+ProcessSingleEvent(taskText, dateTime, dateCoords)
+{
+    local currentYear   := SubStr(dateTime, 1, 4)
+    local currentMonth  := SubStr(dateTime, 5, 2)
+    local currentDay    := SubStr(dateTime, 7, 2)
+    local currentHour   := SubStr(dateTime, 9, 2)
+    local currentMinute := SubStr(dateTime, 11, 2)
+
+    SendInput(taskText)
+    Sleep(250)
+    Send("{Enter}")
+    Sleep(750)
+    Send("{Backspace 2}")
+    Sleep(250)
+    SendInput(Format("{:02}", currentMinute))
+    Sleep(250)
+    Send("+{Tab}")
+    Sleep(250)
+    SendInput(Format("{:02}", currentHour))
+    Sleep(250)
+    Send("+{Tab}")
+    Sleep(500)
+
+    local dateKey := Integer(currentDay) . "-" . Integer(currentMonth)
+    if (dateCoords.Has(dateKey))
+    {
+        Click(dateCoords[dateKey][1], dateCoords[dateKey][2])
+    }
+    else
+    {
+        ToolTip()
+        MsgBox("ОШИБКА: Координаты для даты " . dateKey . " не найдены.")
+        ExitApp()
+    }
+    Sleep(500)
+    Send("{Enter}")
+    Sleep(1000)
+}
+
 ; --- ФУНКЦИЯ КОНВЕРТАЦИИ ДАТЫ ---
-; Преобразует "DD.MM.YYYY" + "HH:MM" в "YYYYMMDDHHmmss"
 ConvertToInternalFormat(dateStr, timeStr)
 {
-    ; Парсим дату (DD.MM.YYYY)
     local parts := StrSplit(dateStr, ".")
     local day := parts[1]
     local month := parts[2]
     local year := parts[3]
     
-    ; Парсим время (HH:MM)
     local timeParts := StrSplit(timeStr, ":")
     local hour := timeParts[1]
     local minute := timeParts[2]
     
-    ; Формируем строку YYYYMMDDHHmmss
     return year . Format("{:02}", month) . Format("{:02}", day) . Format("{:02}", hour) . Format("{:02}", minute) . "00"
 }
 
@@ -232,13 +203,11 @@ GenerateDateCoords(startDateStr, endDateStr)
 {
     local coords := Map()
     
-    ; Начальные координаты и шаги
     local startX := 1295
     local startY := 455
     local stepX := 48
     local stepY := 40
     
-    ; Конвертируем даты из DD.MM.YYYY в YYYYMMDD
     local startParts := StrSplit(startDateStr, ".")
     local startInternalDate := startParts[3] . Format("{:02}", startParts[2]) . Format("{:02}", startParts[1]) . "000000"
     
@@ -250,7 +219,6 @@ GenerateDateCoords(startDateStr, endDateStr)
     local row := 0
     local col := 0
     
-    ; Генерируем все даты от начальной до конечной
     while (currentDate <= endInternalDate)
     {
         local day := Integer(SubStr(currentDate, 7, 2))
@@ -269,7 +237,6 @@ GenerateDateCoords(startDateStr, endDateStr)
             row++
         }
         
-        ; Переходим к следующему дню
         currentDate := DateAdd(currentDate, 1, "Days")
     }
     
