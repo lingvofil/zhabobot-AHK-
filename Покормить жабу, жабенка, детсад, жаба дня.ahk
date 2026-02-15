@@ -20,7 +20,6 @@ RunScheduling()
             Time: ["00:01", "01:00", "07:30", "09:00", "09:23", "12:00", "14:00", "16:00", "20:30"],  ; Время для каждой подзадачи
             DailyRepeats: [1, 1, 1, 1, 14, 1, 1, 1, 1],  ; Количество повторений в день
             IntervalHours: [24, 24, 24, 24, 1, 24, 24, 24, 24],  ; Интервал для каждой подзадачи
-            IntervalMinutes: [0, 0, 0, 0, 0, 0, 0, 0, 0],
             Days: 4  ; Количество дней выполнения для всех подзадач
         },
         ; Брак вознаграждение
@@ -28,8 +27,7 @@ RunScheduling()
             Text: "брак вознаграждение",
             Date: "08.02.2026",
             Time: "00:05",
-            IntervalHours: 120,
-            IntervalMinutes: 0,
+            IntervalDays: 5,
             Iterations: 0
         },
         ; Клан вознаграждение
@@ -37,8 +35,7 @@ RunScheduling()
             Text: "клан вознаграждение",
             Date: "06.02.2026",
             Time: "00:05",
-            IntervalHours: 168,
-            IntervalMinutes: 0,
+            IntervalDays: 7,
             Iterations: 0
         }
     ]
@@ -93,7 +90,6 @@ RunScheduling()
                 local currentTime := task.Time[A_Index]
                 local currentDailyRepeats := task.DailyRepeats[A_Index]
                 local currentIntervalHours := task.IntervalHours[A_Index]
-                local currentIntervalMinutes := task.IntervalMinutes[A_Index]
                 
                 ToolTip("Выполняется задача " . completedTasks . " из " . totalTasks . ": " . currentText, 100, 100)
                 
@@ -110,7 +106,6 @@ RunScheduling()
                         totalEvents++
                         ProcessSingleEvent(currentText, currentDayDate, dateCoords)
                         currentDayDate := DateAdd(currentDayDate, currentIntervalHours, "Hours")
-                        currentDayDate := DateAdd(currentDayDate, currentIntervalMinutes, "Minutes")
                     }
                 }
             }
@@ -133,8 +128,10 @@ RunScheduling()
             {
                 totalEvents++
                 ProcessSingleEvent(task.Text, currentDateTime, dateCoords)
-                currentDateTime := DateAdd(currentDateTime, task.IntervalHours, "Hours")
-                currentDateTime := DateAdd(currentDateTime, task.IntervalMinutes, "Minutes")
+                if (task.HasOwnProp("IntervalDays"))
+                    currentDateTime := DateAdd(currentDateTime, task.IntervalDays, "Days")
+                else
+                    currentDateTime := DateAdd(currentDateTime, task.IntervalHours, "Hours")
             }
         }
     }
